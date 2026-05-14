@@ -5,8 +5,8 @@ import { useState, useEffect, useRef } from "react";
 // OWNER CONFIG — edit these
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const OWNER_PASSWORD = "adaptable";
-const OWNER_VENMO = "your-venmo-username";       // your Venmo handle
-const OWNER_VENMO_AMOUNT = 10;                   // suggested tip amount $
+const OWNER_VENMO = "amyf_af";       // your Venmo handle
+const OWNER_VENMO_AMOUNT = 5;                   // suggested tip amount $
 const OWNER_VENMO_NOTE = "Consequence+Chamber+Tip+💸";
 const APP_TITLE = "The Consequence Chamber";
 const BASE_URL = "https://consequence-chamber.app";   // replace after deploy
@@ -44,12 +44,13 @@ const GIFT_CATALOG = [
   { id: "c19", category: "Cash & Cards", emoji: "🛍️", title: "Amazon Gift Card ($50)", affiliate: null },
   { id: "c20", category: "Cash & Cards", emoji: "✈️", title: "Travel Fund Contribution ($100)", affiliate: null },
   { id: "c21", category: "Cash & Cards", emoji: "📚", title: "Book of My Choosing (Delivered)", affiliate: null },
+  { id: "c22", category: "Cash & Cards", emoji: "🐾", title: "Tiny fund ($50)", affiliate: null },
 
   // ── Luxury ─────────────────────────────────────────────────────
-  { id: "c22", category: "Luxury", emoji: "👜", title: "Designer Item Under $200 (My Pick)", affiliate: null },
-  { id: "c23", category: "Luxury", emoji: "💎", title: "Jewelry Contribution Fund", affiliate: null },
-  { id: "c24", category: "Luxury", emoji: "🌿", title: "Premium Skincare Product", affiliate: null },
-  { id: "c25", category: "Luxury", emoji: "🎁", title: "Mystery Compensation Package", affiliate: null },
+  { id: "c23", category: "Luxury", emoji: "👜", title: "Designer Item Under $200 (My Pick)", affiliate: null },
+  { id: "c24", category: "Luxury", emoji: "💎", title: "Jewelry Contribution Fund", affiliate: null },
+  { id: "c25", category: "Luxury", emoji: "🌿", title: "Premium Skincare Product", affiliate: null },
+  { id: "c26", category: "Luxury", emoji: "🎁", title: "Mystery Compensation Package", affiliate: null },
 ];
 
 const DRAMATIC_VERDICTS = [

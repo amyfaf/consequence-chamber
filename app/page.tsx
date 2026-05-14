@@ -9,7 +9,7 @@ const OWNER_VENMO = "your-venmo-username";       // your Venmo handle
 const OWNER_VENMO_AMOUNT = 10;                   // suggested tip amount $
 const OWNER_VENMO_NOTE = "Consequence+Chamber+Tip+💸";
 const APP_TITLE = "The Consequence Chamber";
-const BASE_URL = "https://yourapp.vercel.app";   // replace after deploy
+const BASE_URL = "https://consequence-chamber.app";   // replace after deploy
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // GIFT CATALOG — 25 curated ideas with affiliate placeholder links

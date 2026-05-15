@@ -7,8 +7,8 @@ import { createClient } from "@supabase/supabase-js";
 // OWNER CONFIG — edit these
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const OWNER_PASSWORD = "adaptable";
-const OWNER_VENMO = "your-venmo-username";
-const OWNER_VENMO_AMOUNT = 10;
+const OWNER_VENMO = "amyf_af";
+const OWNER_VENMO_AMOUNT = 5;
 const OWNER_VENMO_NOTE = "Consequence+Chamber+Tip+💸";
 const APP_TITLE = "The Consequence Chamber";
 const BASE_URL = "https://consequence-chamber.vercel.app";

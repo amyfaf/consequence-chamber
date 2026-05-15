@@ -395,7 +395,7 @@ export default function App() {
   };
 
   const ownerVenmoLink = `https://venmo.com/${OWNER_VENMO}?txn=pay&amount=${OWNER_VENMO_AMOUNT}&note=${OWNER_VENMO_NOTE}`;
-  const senderVenmoLink = receiverVenmo ? `https://venmo.com/${receiverVenmo}?txn=pay&amount=50&note=Accountability+Tribute+💸` : null;
+  const senderVenmoLink = receiverVenmo ? `https://account.venmo.com/${receiverVenmo}?txn=pay&amount=50&note=Accountability+Tribute+💸` : null;
 
   // ── LOADING ───────────────────────────────────────────────────
   if (screen === "loading") return (

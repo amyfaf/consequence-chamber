@@ -682,7 +682,7 @@ export default function App() {
             </div>
           </div>
           <div className="gap">
-            <button className="btn btn-gold" onClick={goPreview} disabled={filledGifts.length < 10 || !senderName.trim()}>
+            <button className="btn btn-gold" onClick={goPreview} disabled={filledGifts.length < 5 || !senderName.trim()}>
               Preview My Roulette →
             </button>
             <p className="sub center">{filledGifts.length}/5 gifts selected{!senderName.trim() ? " · Add your name above" : ""}</p>

@@ -25,31 +25,74 @@ const supabase = createClient(
 // GIFT CATALOG
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const GIFT_CATALOG = [
+  // ── Beauty & Wellness ──────────────────────────────────────────
   { id: "c01", category: "Beauty & Wellness", emoji: "💄", title: "Sephora Gift Card ($50)", affiliate: null },
   { id: "c02", category: "Beauty & Wellness", emoji: "🧖‍♀️", title: "Spa Day Contribution ($75+)", affiliate: null },
-  { id: "c03", category: "Beauty & Wellness", emoji: "🕯️", title: "Luxury Candle (Diptyque or equiv.)", affiliate: null },
-  { id: "c04", category: "Beauty & Wellness", emoji: "🛁", title: "Fancy Bath Set", affiliate: null },
-  { id: "c05", category: "Beauty & Wellness", emoji: "💅", title: "Manicure & Pedicure Voucher", affiliate: null },
-  { id: "c06", category: "Food & Drink", emoji: "🍣", title: "Emergency Sushi Delivery", affiliate: null },
-  { id: "c07", category: "Food & Drink", emoji: "🍽️", title: "Dinner Reservation (Your Choice)", affiliate: null },
-  { id: "c08", category: "Food & Drink", emoji: "🛵", title: "Uber Eats Credit ($40+)", affiliate: null },
-  { id: "c09", category: "Food & Drink", emoji: "🍵", title: "Matcha & Pastry Tribute", affiliate: null },
-  { id: "c10", category: "Food & Drink", emoji: "☕", title: "Weekend Coffee Pilgrimage", affiliate: null },
-  { id: "c11", category: "Food & Drink", emoji: "🥂", title: "Bottle of Champagne", affiliate: null },
-  { id: "c12", category: "Food & Drink", emoji: "🍫", title: "Luxury Chocolate Box", affiliate: null },
-  { id: "c13", category: "Experiences", emoji: "🌹", title: "Flowers + Handwritten Apology", affiliate: null },
-  { id: "c14", category: "Experiences", emoji: "🎬", title: "Movie Night (You Plan Everything)", affiliate: null },
-  { id: "c15", category: "Experiences", emoji: "🎨", title: "Activity of My Choosing", affiliate: null },
-  { id: "c16", category: "Experiences", emoji: "🚗", title: "Designated Driver for a Night", affiliate: null },
-  { id: "c17", category: "Experiences", emoji: "🧹", title: "Full Apartment Clean (By You)", affiliate: null },
-  { id: "c18", category: "Cash & Cards", emoji: "💸", title: "Venmo Tribute ($50)", affiliate: null },
-  { id: "c19", category: "Cash & Cards", emoji: "🛍️", title: "Amazon Gift Card ($50)", affiliate: null },
-  { id: "c20", category: "Cash & Cards", emoji: "✈️", title: "Travel Fund Contribution ($100)", affiliate: null },
-  { id: "c21", category: "Cash & Cards", emoji: "📚", title: "Book of My Choosing (Delivered)", affiliate: null },
-  { id: "c22", category: "Luxury", emoji: "👜", title: "Designer Item Under $200 (My Pick)", affiliate: null },
-  { id: "c23", category: "Luxury", emoji: "💎", title: "Jewelry Contribution Fund", affiliate: null },
-  { id: "c24", category: "Luxury", emoji: "🌿", title: "Premium Skincare Product", affiliate: null },
-  { id: "c25", category: "Luxury", emoji: "🎁", title: "Mystery Compensation Package", affiliate: null },
+  { id: "c03", category: "Beauty & Wellness", emoji: "🕯️", title: "Luxury Candle of My Choosing", affiliate: null },
+  { id: "c04", category: "Beauty & Wellness", emoji: "💅", title: "Manicure & Pedicure Voucher", affiliate: null },
+  { id: "c05", category: "Beauty & Wellness", emoji: "🌸", title: "Jo Malone Scent Sticks", affiliate: null },
+  { id: "c06", category: "Beauty & Wellness", emoji: "✨", title: "Noble Panacea Discovery Ritual Set", affiliate: null },
+  { id: "c07", category: "Beauty & Wellness", emoji: "💆", title: "Aesop Set of My Choosing", affiliate: null },
+  { id: "c08", category: "Beauty & Wellness", emoji: "👁️", title: "Barbara Sturm Eye Patches", affiliate: null },
+  { id: "c09", category: "Beauty & Wellness", emoji: "🌙", title: "Laneige Set of My Choosing", affiliate: null },
+  { id: "c10", category: "Beauty & Wellness", emoji: "💧", title: "Silk Sleep Mask of My Choosing", affiliate: null },
+  { id: "c11", category: "Beauty & Wellness", emoji: "💨", title: "Dyson Hair Set", affiliate: null },
+  { id: "c12", category: "Beauty & Wellness", emoji: "💋", title: "Charlotte Tilbury Gift Set", affiliate: null },
+  { id: "c13", category: "Beauty & Wellness", emoji: "🫧", title: "Drunk Elephant Protini Set", affiliate: null },
+  { id: "c14", category: "Beauty & Wellness", emoji: "🌿", title: "Tatcha Dewy Skin Set", affiliate: null },
+  { id: "bw_custom", category: "Beauty & Wellness", emoji: "✏️", title: "Write In Your Own →", affiliate: null, isWriteIn: true },
+
+  // ── Food & Drink ───────────────────────────────────────────────
+  { id: "c15", category: "Food & Drink", emoji: "🍣", title: "Emergency Sushi Delivery", affiliate: null },
+  { id: "c16", category: "Food & Drink", emoji: "🍽️", title: "Dinner Reservation at My Choosing", affiliate: null },
+  { id: "c17", category: "Food & Drink", emoji: "🛵", title: "Uber Eats Credit ($40+)", affiliate: null },
+  { id: "c18", category: "Food & Drink", emoji: "🍵", title: "Matcha & Pastry Tribute", affiliate: null },
+  { id: "c19", category: "Food & Drink", emoji: "🥂", title: "Bottle of Wine of My Choosing", affiliate: null },
+  { id: "c20", category: "Food & Drink", emoji: "🍫", title: "Sugarfina Candy Set", affiliate: null },
+  { id: "c21", category: "Food & Drink", emoji: "🫒", title: "Brightland Olive Oil Set", affiliate: null },
+  { id: "c22", category: "Food & Drink", emoji: "☕", title: "Ember Smart Mug", affiliate: null },
+  { id: "c23", category: "Food & Drink", emoji: "🥤", title: "Juicer Machine of My Choosing", affiliate: null },
+  { id: "c24", category: "Food & Drink", emoji: "🍷", title: "Wine Chiller", affiliate: null },
+  { id: "c25", category: "Food & Drink", emoji: "☕", title: "Fellow Coffee Kettle", affiliate: null },
+  { id: "c26", category: "Food & Drink", emoji: "🍱", title: "Erewhon Gift Basket", affiliate: null },
+  { id: "fd_custom", category: "Food & Drink", emoji: "✏️", title: "Write In Your Own →", affiliate: null, isWriteIn: true },
+
+  // ── Home & Lifestyle ───────────────────────────────────────────
+  { id: "c27", category: "Home & Lifestyle", emoji: "🍳", title: "Caraway Cookware Set", affiliate: null },
+  { id: "c28", category: "Home & Lifestyle", emoji: "🔪", title: "Japanese Knife Set", affiliate: null },
+  { id: "c29", category: "Home & Lifestyle", emoji: "🛏️", title: "Brooklinen Sateen Sheets", affiliate: null },
+  { id: "c30", category: "Home & Lifestyle", emoji: "🫕", title: "Le Creuset Enameled Cast Iron", affiliate: null },
+  { id: "c31", category: "Home & Lifestyle", emoji: "🌿", title: "Plant + Pot of My Choosing", affiliate: null },
+  { id: "c32", category: "Home & Lifestyle", emoji: "🕯️", title: "Voluspa Candle Set", affiliate: null },
+  { id: "c33", category: "Home & Lifestyle", emoji: "🌺", title: "Maison Louis Marie Diffuser", affiliate: null },
+  { id: "c34", category: "Home & Lifestyle", emoji: "🎵", title: "Bluetooth Speaker of My Choosing", affiliate: null },
+  { id: "c35", category: "Home & Lifestyle", emoji: "🛋️", title: "Barefoot Dreams Blanket", affiliate: null },
+  { id: "hl_custom", category: "Home & Lifestyle", emoji: "✏️", title: "Write In Your Own →", affiliate: null, isWriteIn: true },
+
+  // ── Tech & Wellness ────────────────────────────────────────────
+  { id: "c36", category: "Tech & Wellness", emoji: "💍", title: "Oura Ring", affiliate: null },
+  { id: "c37", category: "Tech & Wellness", emoji: "📷", title: "Polaroid Camera", affiliate: null },
+  { id: "c38", category: "Tech & Wellness", emoji: "💆", title: "Theragun Mini", affiliate: null },
+  { id: "c39", category: "Tech & Wellness", emoji: "📱", title: "Apple AirPods of My Choosing", affiliate: null },
+  { id: "c40", category: "Tech & Wellness", emoji: "📚", title: "Kindle Paperwhite", affiliate: null },
+  { id: "tw_custom", category: "Tech & Wellness", emoji: "✏️", title: "Write In Your Own →", affiliate: null, isWriteIn: true },
+
+  // ── Experiences ────────────────────────────────────────────────
+  { id: "c41", category: "Experiences", emoji: "🌹", title: "Flowers + Handwritten Apology", affiliate: null },
+  { id: "c42", category: "Experiences", emoji: "🎬", title: "Movie Night (You Plan Everything)", affiliate: null },
+  { id: "c43", category: "Experiences", emoji: "🚗", title: "Designated Driver for a Night", affiliate: null },
+  { id: "c44", category: "Experiences", emoji: "🧹", title: "Full Apartment Clean (By You)", affiliate: null },
+  { id: "c45", category: "Experiences", emoji: "🎭", title: "Event Tickets of My Choosing", affiliate: null },
+  { id: "ex_custom", category: "Experiences", emoji: "✏️", title: "Write In Your Own →", affiliate: null, isWriteIn: true },
+
+  // ── Cash & Cards ───────────────────────────────────────────────
+  { id: "c46", category: "Cash & Cards", emoji: "💸", title: "Venmo Tribute ($50)", affiliate: null },
+  { id: "c47", category: "Cash & Cards", emoji: "🛍️", title: "Amazon Gift Card ($50)", affiliate: null },
+  { id: "c48", category: "Cash & Cards", emoji: "✈️", title: "Travel Fund Contribution ($100)", affiliate: null },
+  { id: "c49", category: "Cash & Cards", emoji: "💎", title: "Swarovski Tennis Necklace", affiliate: null },
+  { id: "c50", category: "Cash & Cards", emoji: "📿", title: "Mejuri Gold Hoops", affiliate: null },
+  { id: "c51", category: "Cash & Cards", emoji: "🧣", title: "Cuyana Tote or Accessory", affiliate: null },
+  { id: "cc_custom", category: "Cash & Cards", emoji: "✏️", title: "Write In Your Own →", affiliate: null, isWriteIn: true },
 ];
 
 const DRAMATIC_VERDICTS = [
@@ -173,11 +216,15 @@ function GiftSlot({ index, value, onChange, usedIds }: any) {
   const categories = [...new Set(GIFT_CATALOG.map(g => g.category))];
 
   const handleSelect = (e: any) => {
-    const id = e.target.value;
-    if (id === "other") { setMode("custom"); onChange(null); return; }
-    if (!id) { onChange(null); return; }
-    const gift = GIFT_CATALOG.find(g => g.id === id);
-    onChange(gift ? { ...gift } : null);
+  const id = e.target.value;
+  if (!id) { onChange(null); return; }
+  const gift = GIFT_CATALOG.find(g => g.id === id);
+  if (gift && (gift as any).isWriteIn) {
+    setMode("custom");
+    onChange(null);
+    return;
+  }
+  onChange(gift ? { ...gift } : null);
   };
 
   const handleCustomSave = () => {
@@ -251,7 +298,7 @@ export default function App() {
   const [senderName, setSenderName] = useState("");
   const [senderVenmo, setSenderVenmo] = useState("");
   const [senderEmail, setSenderEmail] = useState("");
-  const [gifts, setGifts] = useState(Array(10).fill(null));
+  const [gifts, setGifts] = useState(Array(5).fill(null));
   const [activeCode, setActiveCode] = useState("");
 
   // Receiver
@@ -350,7 +397,7 @@ export default function App() {
   };
 
   const goPreview = () => {
-    if (filledGifts.length < 10) return;
+    if (filledGifts.length < 5) return;
     setScreen("preview");
   };
 
@@ -622,14 +669,14 @@ export default function App() {
               <label className="label mt1">Your email (for spin notifications)</label>
               <input className="input" placeholder="email@example.com" value={senderEmail} onChange={e => setSenderEmail(e.target.value)} />
               <label className="label mt1">Your Venmo handle (receiver's fallback payment)</label>
-              <input className="input" placeholder="@your-venmo" value={senderVenmo} onChange={e => setSenderVenmo(e.target.value)} />
+              <input className="input" placeholder="your-venmo" value={senderVenmo} onChange={e => setSenderVenmo(e.target.value)} />
             </div>
           </div>
           <div className="card">
             <p className="eyebrow">Step 2 — Build Your Roulette</p>
             <p className="sub mb1">Choose 10 unique gifts. Use "Other" to write your own.</p>
             <div className="gap">
-              {Array.from({ length: 10 }).map((_, i) => (
+              {Array.from({ length: 5 }).map((_, i) => (
                 <GiftSlot key={i} index={i} value={gifts[i]} onChange={(val: any) => handleGiftChange(i, val)} usedIds={usedIds} />
               ))}
             </div>
@@ -638,9 +685,9 @@ export default function App() {
             <button className="btn btn-gold" onClick={goPreview} disabled={filledGifts.length < 10 || !senderName.trim()}>
               Preview My Roulette →
             </button>
-            <p className="sub center">{filledGifts.length}/10 gifts selected{!senderName.trim() ? " · Add your name above" : ""}</p>
+            <p className="sub center">{filledGifts.length}/5 gifts selected{!senderName.trim() ? " · Add your name above" : ""}</p>
           </div>
-          <p className="foot">All 10 slots must be filled to generate a link.</p>
+          <p className="foot">All 5 slots must be filled to generate a link.</p>
         </div>
       </div>
     </>

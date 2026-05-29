@@ -105,6 +105,22 @@ const DRAMATIC_VERDICTS = [
   "The universe has decided your fate.",
 ];
 
+const INDICTMENTS = [
+  "I'm not your mother.",
+  "Why are you bothering me.",
+  "Orgasm gap — put a price on your pleasure.",
+  "You have been found guilty of emotional negligence.",
+  "The audacity alone warranted this.",
+  "Consider this your formal notice.",
+  "This is what accountability looks like.",
+  "You did this to yourself.",
+  "The chamber does not accept apologies. Only consequences.",
+  "Restitution is non-negotiable.",
+  "You know what you did.",
+  "The evidence was overwhelming.",
+  "Your inconvenience has been logged and escalated.",
+  "This is not personal. This is protocol.",
+];
 const generateCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -300,12 +316,18 @@ export default function App() {
   const [senderEmail, setSenderEmail] = useState("");
   const [gifts, setGifts] = useState(Array(5).fill(null));
   const [activeCode, setActiveCode] = useState("");
+  const [indictment, setIndictment] = useState("");
+  const [customIndictment, setCustomIndictment] = useState("");
+  const [showCustomIndictment, setShowCustomIndictment] = useState(false);
 
   // Receiver
   const [receiverGifts, setReceiverGifts] = useState<any[]>([]);
   const [receiverVenmo, setReceiverVenmo] = useState("");
   const [receiverSenderName, setReceiverSenderName] = useState("");
   const [receiverSenderEmail, setReceiverSenderEmail] = useState("");
+  const [receiverNotifyOnVenmo, setReceiverNotifyOnVenmo] = useState(false);
+  const [receiverCode, setReceiverCode] = useState("");
+  const [receiverIndictment, setReceiverIndictment] = useState("");
 
   // Roulette
   const [spinsLeft, setSpinsLeft] = useState(3);
@@ -335,6 +357,9 @@ export default function App() {
           setReceiverVenmo(data.sender_venmo);
           setReceiverSenderName(data.sender_name);
           setReceiverSenderEmail(data.sender_email || "");
+          setReceiverNotifyOnVenmo(data.notify_on_venmo || false);
+          setReceiverCode(r);
+          setReceiverIndictment(data.indictment || "");
           setScreen("receiver");
         } else {
           setScreen("entry");
@@ -403,12 +428,16 @@ export default function App() {
 
   const generateLink = async () => {
     setSaveError("");
+    const finalIndictment = showCustomIndictment ? customIndictment.trim() : indictment;
     const { error } = await supabase.from("roulettes").insert({
-      code: activeCode,
-      sender_name: senderName,
-      sender_venmo: senderVenmo,
-      sender_email: senderEmail,
-      gifts: filledGifts,
+     code: activeCode,
+     sender_name: senderName,
+     sender_venmo: senderVenmo ? (senderVenmo.startsWith("@") ? senderVenmo.slice(1) : senderVenmo) : "",
+     sender_email: "",
+     notify_on_spin: false,
+     notify_on_venmo: false,
+     gifts: filledGifts,
+     indictment: finalIndictment || null,
     });
     if (error) {
       setSaveError("Something went wrong. Please try again.");
@@ -681,6 +710,53 @@ export default function App() {
               ))}
             </div>
           </div>
+          {/* Optional indictment */}
+          <div className="card" style={{ marginTop: "0.65rem" }}>
+           <p className="eyebrow">Optional — The Formal Indictment</p>
+           <p className="sub mb1">Add a message that the receiver sees before they spin. Completely optional.</p>
+           {!showCustomIndictment ? (
+             <div className="gap-sm">
+               <select
+                 className="select"
+                 value={indictment}
+                 onChange={e => {
+                   if (e.target.value === "custom") {
+                    setShowCustomIndictment(true);
+                    setIndictment("");
+                   } else {
+                     setIndictment(e.target.value);
+                   }
+                 }}
+               >
+                 <option value="">— Skip this (optional) —</option>
+                 {INDICTMENTS.map((ind, i) => (
+                   <option key={i} value={ind}>"{ind}"</option>
+                 ))}
+                 <option value="custom">✏️ Write your own indictment →</option>
+               </select>
+               {indictment && (
+                 <p style={{ fontFamily: "var(--serif)", fontSize: "1rem", fontStyle: "italic", color: "var(--gold)", marginTop: "0.35rem", textAlign: "center" }}>
+                   "{indictment}"
+                 </p>
+               )}
+             </div>
+           ) : (
+             <div className="gap-sm">
+               <input
+                 className="input"
+                 placeholder="Write your indictment..."
+                 value={customIndictment}
+                 onChange={e => setCustomIndictment(e.target.value)}
+               />
+               <button className="btn btn-ghost btn-sm" onClick={() => { setShowCustomIndictment(false); setCustomIndictment(""); }}>← Back to suggestions</button>
+               {customIndictment && (
+                 <p style={{ fontFamily: "var(--serif)", fontSize: "1rem", fontStyle: "italic", color: "var(--gold)", marginTop: "0.35rem", textAlign: "center" }}>
+                   "{customIndictment}"
+                 </p>
+               )}
+             </div>
+           )}
+         </div>
           <div className="gap">
             <button className="btn btn-gold" onClick={goPreview} disabled={filledGifts.length < 5 || !senderName.trim()}>
               Preview My Roulette →
@@ -780,6 +856,13 @@ export default function App() {
             <div className="card center mb1 fadein">
               <p className="sub" style={{ fontSize: "11px" }}>A consequence has been prepared for you by</p>
               <p style={{ fontFamily: "var(--serif)", fontSize: "1.3rem", color: "var(--gold)", marginTop: "0.25rem" }}>{receiverSenderName}</p>
+              {receiverIndictment && (
+                <>
+                  <div style={{ height: "1px", background: "var(--border)", margin: "0.85rem 0" }} />
+                  <p style={{ fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: "0.4rem" }}>Formal Notice</p>
+                  <p style={{ fontFamily: "var(--serif)", fontSize: "1.1rem", fontStyle: "italic", color: "var(--text)", lineHeight: "1.5" }}>"{receiverIndictment}"</p>
+                </>
+              )}
             </div>
           )}
           <div className="card card-accent">

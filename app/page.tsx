@@ -703,7 +703,7 @@ export default function App() {
           </div>
           <div className="card">
             <p className="eyebrow">Step 2 — Build Your Roulette</p>
-            <p className="sub mb1">Choose 10 unique gifts. Use "Other" to write your own.</p>
+            <p className="sub mb1">Choose 5 unique gifts. Use "Other" to write your own.</p>
             <div className="gap">
               {Array.from({ length: 5 }).map((_, i) => (
                 <GiftSlot key={i} index={i} value={gifts[i]} onChange={(val: any) => handleGiftChange(i, val)} usedIds={usedIds} />

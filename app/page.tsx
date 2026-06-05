@@ -566,7 +566,9 @@ export default function App() {
       <div className="app">
         <div className="wrap">
           <div className="topbar">
-            <span className="logo">{APP_TITLE}</span>
+            <span className="logo" onClick={() => setScreen("entry")} style={{ cursor: "pointer" }}>
+              {APP_TITLE}
+            </span>
             <span className="badge">Restricted</span>
           </div>
           <div className={`card card-accent ${pwError || codeError ? "shake" : ""}`}>
@@ -616,7 +618,9 @@ export default function App() {
       <div className="app">
         <div className="wrap">
           <div className="topbar">
-            <span className="logo">{APP_TITLE}</span>
+            <span className="logo" onClick={() => setScreen("entry")} style={{ cursor: "pointer" }}>
+              {APP_TITLE}
+            </span>
             <span className="badge" style={{ color: "var(--gold)", borderColor: "var(--border-gold)" }}>Admin</span>
           </div>
           <div className="card card-accent">
@@ -687,7 +691,9 @@ export default function App() {
       <div className="app">
         <div className="wrap">
           <div className="topbar">
-            <span className="logo">{APP_TITLE}</span>
+            <span className="logo" onClick={() => setScreen("entry")} style={{ cursor: "pointer" }}>
+              {APP_TITLE}
+            </span>
             <span className="badge">Sender Setup</span>
           </div>
           <div className="card card-accent">
@@ -776,7 +782,9 @@ export default function App() {
       <div className="app">
         <div className="wrap fadein">
           <div className="topbar">
-            <span className="logo">{APP_TITLE}</span>
+            <span className="logo" onClick={() => setScreen("entry")} style={{ cursor: "pointer" }}>
+              {APP_TITLE}
+            </span>
             <span className="badge">Preview</span>
           </div>
           <div className="card card-accent center">
@@ -819,7 +827,9 @@ export default function App() {
       <div className="app">
         <div className="wrap fadein">
           <div className="topbar">
-            <span className="logo">{APP_TITLE}</span>
+            <span className="logo" onClick={() => setScreen("entry")} style={{ cursor: "pointer" }}>
+              {APP_TITLE}
+            </span>
             <span className="badge">Link Ready</span>
           </div>
           <div className="card card-accent center">
@@ -849,7 +859,9 @@ export default function App() {
       <div className="app">
         <div className="wrap">
           <div className="topbar">
-            <span className="logo">{APP_TITLE}</span>
+            <span className="logo" onClick={() => setScreen("entry")} style={{ cursor: "pointer" }}>
+              {APP_TITLE}
+            </span>
             <span className="badge">Your Fate Awaits</span>
           </div>
           {receiverSenderName && (

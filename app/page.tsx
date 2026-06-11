@@ -229,6 +229,33 @@ const css = `
   .loading-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); animation: pulse 1.2s ease-in-out infinite; }
   .loading-dot:nth-child(2) { animation-delay: 0.2s; }
   .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+  /* Analytics */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; margin-bottom: 1rem; }
+  .stat-card { background: var(--card2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; text-align: center; }
+  .stat-num { font-family: var(--serif); font-size: 2rem; font-weight: 600; color: var(--gold); line-height: 1; margin-bottom: 0.25rem; }
+  .stat-label { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-3); }
+  .bar-row { display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.5rem; }
+  .bar-label { font-size: 11px; color: var(--text-2); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { flex: 2; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--gold); border-radius: 3px; transition: width 0.6s ease; }
+  .bar-count { font-size: 10px; color: var(--text-3); min-width: 24px; text-align: right; }
+  .ccc-row { display: flex; align-items: center; justify-content: space-between; padding: 0.55rem 0; border-bottom: 1px solid var(--border); }
+  .ccc-row:last-child { border-bottom: none; }
+  .ccc-handle { font-size: 12px; color: var(--text-2); }
+  .ccc-score { font-size: 13px; font-weight: 600; font-family: var(--serif); }
+  .ccc-score.good { color: var(--green); }
+  .ccc-score.bad { color: var(--red); }
+  .owner-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; }
+  .owner-tab { flex: 1; padding: 0.6rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); cursor: pointer; transition: all 0.18s; }
+  .owner-tab.active { background: var(--gold); color: #000; border-color: var(--gold); }
+  /* Profile form */
+  .profile-banner { background: linear-gradient(135deg, var(--card) 0%, #1a1710 100%); border: 1px solid var(--border-gold); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1rem; }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0; cursor: pointer; }
+  .toggle-label { font-size: 12px; color: var(--text-2); }
+  .toggle { width: 36px; height: 20px; border-radius: 10px; background: var(--border); position: relative; transition: background 0.2s; flex-shrink: 0; }
+  .toggle.on { background: var(--gold); }
+  .toggle::after { content: ''; position: absolute; width: 14px; height: 14px; border-radius: 50%; background: white; top: 3px; left: 3px; transition: left 0.2s; }
+  .toggle.on::after { left: 19px; }
   @keyframes pulse { 0%, 100% { opacity: 0.2; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
 `;
 
@@ -361,11 +388,26 @@ export default function App() {
   const [purchaseEmail, setPurchaseEmail] = useState("");
   const [purchaseStep, setPurchaseStep] = useState<"form"|"pay">("form");
 
+  // ── Owner analytics ───────────────────────────────────────────
+  const [ownerTab, setOwnerTab] = useState<"codes"|"analytics">("codes");
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+
   // ── Owner ─────────────────────────────────────────────────────
   const [generatedCodes, setGeneratedCodes] = useState<any[]>([]);
   const [codeEmailInputs, setCodeEmailInputs] = useState<{[k: string]: string}>({});
   const [codeNameInputs, setCodeNameInputs] = useState<{[k: string]: string}>({});
   const [sendingCode, setSendingCode] = useState<string|null>(null);
+
+  // ── User profile ──────────────────────────────────────────────
+  const [showProfileForm, setShowProfileForm] = useState(false);
+  const [profileAge, setProfileAge] = useState("");
+  const [profileGender, setProfileGender] = useState("");
+  const [profileCity, setProfileCity] = useState("");
+  const [profileOccupation, setProfileOccupation] = useState("");
+  const [profileIntent, setProfileIntent] = useState("");
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
 
   // ── Sender ────────────────────────────────────────────────────
   const [senderName, setSenderName] = useState("");
@@ -419,6 +461,8 @@ export default function App() {
           setReceiverNotifyOnVenmo(data.notify_on_venmo || false);
           setReceiverCode(r);
           setReceiverIndictment(data.indictment || "");
+          // Track open event
+          try { await supabase.from("receiver_events").insert({ roulette_code: r, event_type: "opened" }); } catch (e) {}
           setScreen("receiver");
           return;
         }
@@ -468,6 +512,21 @@ export default function App() {
 
   const freeRoulettesLeft = Math.max(0, FREE_ROULETTE_LIMIT - userRoulettes.length);
 
+  const saveProfile = async () => {
+    if (!currentUser) return;
+    setSavingProfile(true);
+    await supabase.from("user_profiles").upsert({
+      user_id: currentUser.id,
+      age: profileAge ? parseInt(profileAge) : null,
+      gender: profileGender || null,
+      city: profileCity || null,
+      occupation: profileOccupation || null,
+      relationship_intent: profileIntent || null,
+    }, { onConflict: "user_id" });
+    setSavingProfile(false);
+    setProfileSaved(true);
+    setShowProfileForm(false);
+  };
   const startNewRoulette = async () => {
     if (freeRoulettesLeft > 0) {
       // Account user gets free roulette — no code needed
@@ -494,6 +553,56 @@ export default function App() {
     }
   };
 
+  const loadAnalytics = async () => {
+    setLoadingAnalytics(true);
+    const { data: roulettes } = await supabase.from("roulettes").select("*");
+    const { data: events } = await supabase.from("receiver_events").select("*");
+    const { data: profiles } = await supabase.from("user_profiles").select("*");
+    const { data: ccc } = await supabase.from("ccc_scores").select("*").order("score", { ascending: true }).limit(10);
+
+    if (!roulettes) { setLoadingAnalytics(false); return; }
+
+    const total = roulettes.length;
+    const registered = roulettes.filter((r: any) => r.user_id).length;
+    const guest = total - registered;
+    const spins = (events || []).filter((e: any) => e.event_type === "spun").length;
+    const opens = (events || []).filter((e: any) => e.event_type === "opened").length;
+    const refusals = (events || []).filter((e: any) => e.event_type === "refused").length;
+    const spinRate = opens > 0 ? Math.round((spins / opens) * 100) : 0;
+    const refusalRate = spins > 0 ? Math.round((refusals / spins) * 100) : 0;
+
+    // Gift popularity
+    const giftCounts: Record<string, number> = {};
+    roulettes.forEach((r: any) => {
+      (r.gifts || []).forEach((g: any) => {
+        const key = g.title;
+        giftCounts[key] = (giftCounts[key] || 0) + 1;
+      });
+    });
+    const topGifts = Object.entries(giftCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+    // Indictment frequency
+    const indictCounts: Record<string, number> = {};
+    roulettes.forEach((r: any) => {
+      if (r.indictment) {
+        indictCounts[r.indictment] = (indictCounts[r.indictment] || 0) + 1;
+      }
+    });
+    const topIndictments = Object.entries(indictCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+    // Gender breakdown from profiles
+    const genderCounts: Record<string, number> = {};
+    (profiles || []).forEach((p: any) => {
+      if (p.gender) genderCounts[p.gender] = (genderCounts[p.gender] || 0) + 1;
+    });
+
+    // Age distribution
+    const ages = (profiles || []).map((p: any) => p.age).filter(Boolean);
+    const avgAge = ages.length > 0 ? Math.round(ages.reduce((a: number, b: number) => a + b, 0) / ages.length) : null;
+
+    setAnalytics({ total, registered, guest, spinRate, refusalRate, topGifts, topIndictments, cccScores: ccc || [], genderCounts, avgAge, totalProfiles: (profiles || []).length });
+    setLoadingAnalytics(false);
+  };
   const makeCode = () => {
     const c = generateCode();
     setGeneratedCodes(prev => [...prev, { code: c, sent: false }]);
@@ -588,6 +697,20 @@ export default function App() {
         setSpinsLeft(p => p - 1);
         setIsSpinning(false);
         setResultKey(k => k + 1);
+        // Track spin event
+        try {
+          await supabase.from("receiver_events").insert({ roulette_code: receiverCode, event_type: "spun", gift_selected: g.title });
+          await supabase.from("roulettes").update({ spin_count: (spinsLeft - 1) }).eq("code", receiverCode);
+          // Update CCC score
+          if (venmoHandle) {
+            const { data: existing } = await supabase.from("ccc_scores").select("*").eq("venmo_handle", venmoHandle).single();
+            if (existing) {
+              await supabase.from("ccc_scores").update({ total_spins: existing.total_spins + 1, score: Math.min(100, existing.score + 5), updated_at: new Date().toISOString() }).eq("venmo_handle", venmoHandle);
+            } else {
+              await supabase.from("ccc_scores").insert({ venmo_handle: venmoHandle, score: 55, total_spins: 1 });
+            }
+          }
+        } catch (e) {}
         // Increment spin count
         await supabase.from("roulettes").update({ spin_count: supabase.rpc("coalesce", []) }).eq("code", receiverCode);
         if (receiverSenderEmail) {
@@ -757,7 +880,50 @@ export default function App() {
               </p>
             )}
           </div>
+          {/* Profile form banner */}
+          {!profileSaved && !showProfileForm && (
+            <div className="profile-banner fadein">
+              <p className="eyebrow">Optional — Tell Us About Yourself</p>
+              <p className="sub" style={{ marginBottom: "0.75rem" }}>Help us understand who's using the chamber. All fields optional.</p>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowProfileForm(true)}>Fill Out Profile →</button>
+            </div>
+          )}
 
+          {showProfileForm && (
+            <div className="card fadein">
+              <p className="eyebrow">Your Profile</p>
+              <p className="sub mb1">All information is anonymous and used only for product improvement.</p>
+              <div className="gap-sm">
+                <label className="label">Age</label>
+                <input className="input" type="number" placeholder="e.g. 28" value={profileAge} onChange={e => setProfileAge(e.target.value)} style={{ fontSize: "13px" }} />
+                <label className="label mt1">Gender</label>
+                <select className="select" value={profileGender} onChange={e => setProfileGender(e.target.value)}>
+                  <option value="">— Prefer not to say —</option>
+                  <option value="Woman">Woman</option>
+                  <option value="Man">Man</option>
+                  <option value="Non-binary">Non-binary</option>
+                  <option value="Other">Other</option>
+                </select>
+                <label className="label mt1">City</label>
+                <input className="input" placeholder="e.g. New York" value={profileCity} onChange={e => setProfileCity(e.target.value)} />
+                <label className="label mt1">Occupation</label>
+                <input className="input" placeholder="e.g. Attorney" value={profileOccupation} onChange={e => setProfileOccupation(e.target.value)} />
+                <label className="label mt1">What are you looking for?</label>
+                <select className="select" value={profileIntent} onChange={e => setProfileIntent(e.target.value)}>
+                  <option value="">— Select —</option>
+                  <option value="Casual fun">Casual fun</option>
+                  <option value="Something serious">Something serious</option>
+                  <option value="Friendship">Friendship</option>
+                  <option value="Accountability">Accountability</option>
+                  <option value="All of the above">All of the above</option>
+                </select>
+                <div className="row mt1">
+                  <button className="btn btn-gold" onClick={saveProfile} disabled={savingProfile}>{savingProfile ? "Saving..." : "Save Profile"}</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setShowProfileForm(false)}>Skip</button>
+                </div>
+              </div>
+            </div>
+          )}
           {loadingHistory ? (
             <p className="sub center" style={{ marginTop: "1rem" }}>Loading your chambers...</p>
           ) : userRoulettes.length === 0 ? (
@@ -790,10 +956,21 @@ export default function App() {
           </div>
           <div className="card card-accent">
             <p className="eyebrow">Owner Dashboard</p>
-            <h2 className="heading-sm">Access Code Generator</h2>
-            <p className="sub">Generate a code, collect payment, then email it to the buyer.</p>
-            <button className="btn btn-gold mt2" onClick={makeCode}>Generate New Code</button>
+            <h2 className="heading-sm">{APP_TITLE}</h2>
           </div>
+
+          <div className="owner-tabs">
+            <button className={`owner-tab ${ownerTab === "codes" ? "active" : ""}`} onClick={() => setOwnerTab("codes")}>Access Codes</button>
+            <button className={`owner-tab ${ownerTab === "analytics" ? "active" : ""}`} onClick={() => { setOwnerTab("analytics"); loadAnalytics(); }}>Analytics</button>
+          </div>
+
+          {ownerTab === "codes" && (
+            <div className="fadein">
+              <div className="card">
+                <p className="eyebrow">Code Generator</p>
+                <p className="sub">Generate a code, collect payment, then email it to the buyer.</p>
+                <button className="btn btn-gold mt2" onClick={makeCode}>Generate New Code</button>
+              </div>
           {generatedCodes.length > 0 && (
             <div className="card fadein">
               <p className="eyebrow">Generated Codes</p>
@@ -816,11 +993,134 @@ export default function App() {
             </div>
           )}
           <div className="card">
-            <p className="eyebrow">Your Venmo</p>
-            <p className="sub">Direct buyers here to pay:</p>
-            <div className="center mt1"><span className="code-pill">@{OWNER_VENMO}</span></div>
-            <a href={ownerVenmoLink} className="btn btn-venmo mt2" target="_blank" rel="noreferrer">Open Venmo</a>
-          </div>
+                <p className="eyebrow">Your Venmo</p>
+                <p className="sub">Direct buyers here to pay:</p>
+                <div className="center mt1"><span className="code-pill">@{OWNER_VENMO}</span></div>
+                <a href={ownerVenmoLink} className="btn btn-venmo mt2" target="_blank" rel="noreferrer">Open Venmo</a>
+              </div>
+            </div>
+          )}
+
+          {ownerTab === "analytics" && (
+            <div className="fadein">
+              {loadingAnalytics ? (
+                <p className="sub center" style={{ marginTop: "1rem" }}>Loading analytics...</p>
+              ) : !analytics ? (
+                <p className="sub center" style={{ marginTop: "1rem" }}>Click Analytics tab to load data.</p>
+              ) : (
+                <>
+                  {/* Overview stats */}
+                  <p className="eyebrow" style={{ marginBottom: "0.65rem" }}>Overview</p>
+                  <div className="stat-grid">
+                    <div className="stat-card">
+                      <p className="stat-num">{analytics.total}</p>
+                      <p className="stat-label">Total Roulettes</p>
+                    </div>
+                    <div className="stat-card">
+                      <p className="stat-num">{analytics.registered}</p>
+                      <p className="stat-label">Registered Users</p>
+                    </div>
+                    <div className="stat-card">
+                      <p className="stat-num">{analytics.guest}</p>
+                      <p className="stat-label">Guest Senders</p>
+                    </div>
+                    <div className="stat-card">
+                      <p className="stat-num">{analytics.totalProfiles}</p>
+                      <p className="stat-label">User Profiles</p>
+                    </div>
+                  </div>
+
+                  {/* Engagement */}
+                  <div className="card" style={{ marginBottom: "1rem" }}>
+                    <p className="eyebrow">Engagement</p>
+                    <div className="stat-grid" style={{ marginBottom: 0 }}>
+                      <div className="stat-card">
+                        <p className="stat-num">{analytics.spinRate}%</p>
+                        <p className="stat-label">Spin Rate</p>
+                      </div>
+                      <div className="stat-card">
+                        <p className="stat-num" style={{ color: analytics.refusalRate > 30 ? "var(--red)" : "var(--green)" }}>{analytics.refusalRate}%</p>
+                        <p className="stat-label">Refusal Rate</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Demographics */}
+                  {analytics.avgAge && (
+                    <div className="card" style={{ marginBottom: "1rem" }}>
+                      <p className="eyebrow">User Demographics</p>
+                      <div className="stat-grid" style={{ marginBottom: "0.5rem" }}>
+                        <div className="stat-card">
+                          <p className="stat-num">{analytics.avgAge}</p>
+                          <p className="stat-label">Avg Age</p>
+                        </div>
+                        <div className="stat-card">
+                          <p className="stat-num">{analytics.totalProfiles}</p>
+                          <p className="stat-label">Profiles Filled</p>
+                        </div>
+                      </div>
+                      {Object.entries(analytics.genderCounts).map(([gender, count]: any) => (
+                        <div className="bar-row" key={gender}>
+                          <span className="bar-label">{gender}</span>
+                          <div className="bar-track"><div className="bar-fill" style={{ width: `${Math.round((count / analytics.totalProfiles) * 100)}%` }} /></div>
+                          <span className="bar-count">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Top gifts */}
+                  {analytics.topGifts.length > 0 && (
+                    <div className="card" style={{ marginBottom: "1rem" }}>
+                      <p className="eyebrow">Most Popular Gifts</p>
+                      {analytics.topGifts.map(([title, count]: any) => (
+                        <div className="bar-row" key={title}>
+                          <span className="bar-label">{title}</span>
+                          <div className="bar-track"><div className="bar-fill" style={{ width: `${Math.round((count / analytics.topGifts[0][1]) * 100)}%` }} /></div>
+                          <span className="bar-count">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Top indictments */}
+                  {analytics.topIndictments.length > 0 && (
+                    <div className="card" style={{ marginBottom: "1rem" }}>
+                      <p className="eyebrow">Most Used Indictments</p>
+                      {analytics.topIndictments.map(([text, count]: any) => (
+                        <div className="bar-row" key={text}>
+                          <span className="bar-label" style={{ fontStyle: "italic" }}>"{text}"</span>
+                          <div className="bar-track"><div className="bar-fill" style={{ width: `${Math.round((count / analytics.topIndictments[0][1]) * 100)}%` }} /></div>
+                          <span className="bar-count">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* CCC Leaderboard */}
+                  {analytics.cccScores.length > 0 && (
+                    <div className="card" style={{ marginBottom: "1rem" }}>
+                      <p className="eyebrow">CCC — Lowest Scores (Worst Offenders)</p>
+                      <p className="sub" style={{ marginBottom: "0.75rem", fontSize: "11px" }}>Score out of 100. Lower = more refusals.</p>
+                      {analytics.cccScores.map((entry: any) => (
+                        <div className="ccc-row" key={entry.venmo_handle}>
+                          <span className="ccc-handle">@{entry.venmo_handle}</span>
+                          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+                            <span style={{ fontSize: "10px", color: "var(--text-3)" }}>{entry.total_refusals} refusals</span>
+                            <span className={`ccc-score ${entry.score >= 70 ? "good" : "bad"}`}>{entry.score}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <button className="btn btn-ghost" onClick={loadAnalytics}>↻ Refresh Data</button>
+                </>
+              )}
+            </div>
+          )}
+
+          <div className="divider" />
           <button className="btn btn-ghost" onClick={() => setScreen("entry")}>← Sign Out</button>
           <p className="foot">Every code you generate is a sale.</p>
         </div>
@@ -1052,7 +1352,21 @@ export default function App() {
                 {isSpinning ? "Calculating fate..." : spinsLeft <= 0 ? "No Spins Remaining" : "Pull the Trigger"}
               </button>
               {(spinsLeft <= 0 || selectedGift) && !isSpinning && senderVenmoLink && (
-                <a href={senderVenmoLink} target="_blank" rel="noreferrer" style={{ display: "block", textAlign: "center", textDecoration: "none", padding: "0.85rem", fontSize: "12px", letterSpacing: "0.12em", textTransform: "uppercase", background: "rgba(255,255,255,0.04)", color: "rgba(240,235,224,0.55)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px" }}>
+                <a href={senderVenmoLink} target="_blank" rel="noreferrer"
+                  onClick={async () => {
+                    try {
+                      await supabase.from("receiver_events").insert({ roulette_code: receiverCode, event_type: "refused" });
+                      if (venmoHandle) {
+                        const { data: existing } = await supabase.from("ccc_scores").select("*").eq("venmo_handle", venmoHandle).single();
+                        if (existing) {
+                          await supabase.from("ccc_scores").update({ total_refusals: existing.total_refusals + 1, score: Math.max(0, existing.score - 15), updated_at: new Date().toISOString() }).eq("venmo_handle", venmoHandle);
+                        } else {
+                          await supabase.from("ccc_scores").insert({ venmo_handle: venmoHandle, score: 35, total_refusals: 1 });
+                        }
+                      }
+                    } catch (e) {}
+                  }}
+                  style={{ display: "block", textAlign: "center", textDecoration: "none", padding: "0.85rem", fontSize: "12px", letterSpacing: "0.12em", textTransform: "uppercase", background: "rgba(255,255,255,0.04)", color: "rgba(240,235,224,0.55)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px" }}>
                   Refuse All Outcomes → Pay Instead
                 </a>
               )}

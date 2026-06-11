@@ -662,7 +662,7 @@ export default function App() {
     };
     if (isAccountCreate && currentUser) insertData.user_id = currentUser.id;
     const { error } = await supabase.from("roulettes").insert(insertData);
-    if (error) { setSaveError("Something went wrong. Please try again."); return; }
+    if (error) { setSaveError(error.message); return; }
     if (isAccountCreate && currentUser) await loadDashboard(currentUser.id);
     setRouletteLink(`${BASE_URL}?r=${activeCode}`);
     setScreen("link-ready");

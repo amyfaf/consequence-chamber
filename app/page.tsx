@@ -408,6 +408,10 @@ export default function App() {
   const [profileIntent, setProfileIntent] = useState("");
   const [profileSaved, setProfileSaved] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [profileHobbies, setProfileHobbies] = useState<string[]>([]);
+  const [profileRelationship, setProfileRelationship] = useState("");
+  const [profilePriceRange, setProfilePriceRange] = useState("");
+  const [profileSendFrequency, setProfileSendFrequency] = useState("");
 
   // ── Sender ────────────────────────────────────────────────────
   const [senderName, setSenderName] = useState("");
@@ -522,6 +526,10 @@ export default function App() {
       city: profileCity || null,
       occupation: profileOccupation || null,
       relationship_intent: profileIntent || null,
+      hobbies: profileHobbies.length > 0 ? profileHobbies : null,
+      relationship_context: profileRelationship || null,
+      price_range: profilePriceRange || null,
+      send_frequency: profileSendFrequency || null,
     }, { onConflict: "user_id" });
     setSavingProfile(false);
     setProfileSaved(true);
@@ -600,7 +608,53 @@ export default function App() {
     const ages = (profiles || []).map((p: any) => p.age).filter(Boolean);
     const avgAge = ages.length > 0 ? Math.round(ages.reduce((a: number, b: number) => a + b, 0) / ages.length) : null;
 
-    setAnalytics({ total, registered, guest, spinRate, refusalRate, topGifts, topIndictments, cccScores: ccc || [], genderCounts, avgAge, totalProfiles: (profiles || []).length });
+    // Hobby counts
+    const hobbyCounts: Record<string, number> = {};
+    (profiles || []).forEach((p: any) => {
+      (p.hobbies || []).forEach((h: string) => {
+        hobbyCounts[h] = (hobbyCounts[h] || 0) + 1;
+      });
+    });
+    const topHobbies = Object.entries(hobbyCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+    // Relationship context counts
+    const relCounts: Record<string, number> = {};
+    (profiles || []).forEach((p: any) => {
+      if (p.relationship_context) relCounts[p.relationship_context] = (relCounts[p.relationship_context] || 0) + 1;
+    });
+
+    // Price range counts
+    const priceCounts: Record<string, number> = {};
+    (profiles || []).forEach((p: any) => {
+      if (p.price_range) priceCounts[p.price_range] = (priceCounts[p.price_range] || 0) + 1;
+    });
+
+    // Gift popularity by relationship context
+    const giftsByRelationship: Record<string, Record<string, number>> = {};
+    (profiles || []).forEach((p: any) => {
+      if (!p.relationship_context || !p.user_id) return;
+      const userRoulettes = (roulettes || []).filter((r: any) => r.user_id === p.user_id);
+      userRoulettes.forEach((r: any) => {
+        (r.gifts || []).forEach((g: any) => {
+          if (!giftsByRelationship[p.relationship_context]) giftsByRelationship[p.relationship_context] = {};
+          giftsByRelationship[p.relationship_context][g.title] = (giftsByRelationship[p.relationship_context][g.title] || 0) + 1;
+        });
+      });
+    });
+    // Get top gift per relationship context
+    const topGiftByRel: Record<string, string> = {};
+    Object.entries(giftsByRelationship).forEach(([rel, gifts]) => {
+      const top = Object.entries(gifts).sort((a, b) => b[1] - a[1])[0];
+      if (top) topGiftByRel[rel] = `${top[0]} (${top[1]})`;
+    });
+
+    // Send frequency counts
+    const freqCounts: Record<string, number> = {};
+    (profiles || []).forEach((p: any) => {
+      if (p.send_frequency) freqCounts[p.send_frequency] = (freqCounts[p.send_frequency] || 0) + 1;
+    });
+
+    setAnalytics({ total, registered, guest, spinRate, refusalRate, topGifts, topIndictments, cccScores: ccc || [], genderCounts, avgAge, totalProfiles: (profiles || []).length, topHobbies, relCounts, priceCounts, topGiftByRel, freqCounts });
     setLoadingAnalytics(false);
   };
   const makeCode = () => {
@@ -917,6 +971,65 @@ export default function App() {
                   <option value="Accountability">Accountability</option>
                   <option value="All of the above">All of the above</option>
                 </select>
+
+                <label className="label mt1">Who do you usually send this to?</label>
+                <select className="select" value={profileRelationship} onChange={e => setProfileRelationship(e.target.value)}>
+                  <option value="">— Select —</option>
+                  <option value="Situationship">Situationship</option>
+                  <option value="Ex">Ex</option>
+                  <option value="Current Partner">Current Partner</option>
+                  <option value="Friend">Friend</option>
+                  <option value="Colleague">Colleague</option>
+                  <option value="Multiple">Multiple / Varies</option>
+                </select>
+
+                <label className="label mt1">Typical consequence budget</label>
+                <select className="select" value={profilePriceRange} onChange={e => setProfilePriceRange(e.target.value)}>
+                  <option value="">— Select —</option>
+                  <option value="Under $50">Under $50</option>
+                  <option value="$50–$150">$50–$150</option>
+                  <option value="$150–$300">$150–$300</option>
+                  <option value="No limit">No limit — they owe me</option>
+                </select>
+
+                <label className="label mt1">How often do you send roulettes?</label>
+                <select className="select" value={profileSendFrequency} onChange={e => setProfileSendFrequency(e.target.value)}>
+                  <option value="">— Select —</option>
+                  <option value="First time">First time</option>
+                  <option value="Occasionally">Occasionally (a few times a year)</option>
+                  <option value="Regularly">Regularly (monthly)</option>
+                  <option value="Constantly">Constantly — they never learn</option>
+                </select>
+
+                <label className="label mt1">Top 3 hobbies (select up to 3)</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginTop: "0.25rem" }}>
+                  {["Travel", "Fitness", "Food & Wine", "Beauty & Skincare", "Reading", "Music", "Art & Culture", "Outdoor Activities", "Cooking", "Fashion", "Wellness", "Tech"].map(h => (
+                    <button
+                      key={h}
+                      type="button"
+                      onClick={() => {
+                        if (profileHobbies.includes(h)) {
+                          setProfileHobbies(profileHobbies.filter(x => x !== h));
+                        } else if (profileHobbies.length < 3) {
+                          setProfileHobbies([...profileHobbies, h]);
+                        }
+                      }}
+                      style={{
+                        padding: "0.35rem 0.75rem",
+                        borderRadius: "20px",
+                        border: `1px solid ${profileHobbies.includes(h) ? "var(--gold)" : "var(--border)"}`,
+                        background: profileHobbies.includes(h) ? "var(--gold-dim)" : "transparent",
+                        color: profileHobbies.includes(h) ? "var(--gold)" : "var(--text-3)",
+                        fontSize: "11px",
+                        cursor: "pointer",
+                        fontFamily: "var(--mono)",
+                        letterSpacing: "0.08em",
+                      }}
+                    >{h}</button>
+                  ))}
+                </div>
+                <p style={{ fontSize: "10px", color: "var(--text-3)", marginTop: "0.25rem" }}>{profileHobbies.length}/3 selected</p>
+
                 <div className="row mt1">
                   <button className="btn btn-gold" onClick={saveProfile} disabled={savingProfile}>{savingProfile ? "Saving..." : "Save Profile"}</button>
                   <button className="btn btn-ghost btn-sm" onClick={() => setShowProfileForm(false)}>Skip</button>
@@ -1091,6 +1204,74 @@ export default function App() {
                         <div className="bar-row" key={text}>
                           <span className="bar-label" style={{ fontStyle: "italic" }}>"{text}"</span>
                           <div className="bar-track"><div className="bar-fill" style={{ width: `${Math.round((count / analytics.topIndictments[0][1]) * 100)}%` }} /></div>
+                          <span className="bar-count">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Hobbies */}
+                  {analytics.topHobbies && analytics.topHobbies.length > 0 && (
+                    <div className="card" style={{ marginBottom: "1rem" }}>
+                      <p className="eyebrow">Top Hobbies</p>
+                      {analytics.topHobbies.map(([hobby, count]: any) => (
+                        <div className="bar-row" key={hobby}>
+                          <span className="bar-label">{hobby}</span>
+                          <div className="bar-track"><div className="bar-fill" style={{ width: `${Math.round((count / analytics.topHobbies[0][1]) * 100)}%` }} /></div>
+                          <span className="bar-count">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Relationship context */}
+                  {analytics.relCounts && Object.keys(analytics.relCounts).length > 0 && (
+                    <div className="card" style={{ marginBottom: "1rem" }}>
+                      <p className="eyebrow">Who They're Sending To</p>
+                      {Object.entries(analytics.relCounts).map(([rel, count]: any) => (
+                        <div className="bar-row" key={rel}>
+                          <span className="bar-label">{rel}</span>
+                          <div className="bar-track"><div className="bar-fill" style={{ width: `${Math.round((count / Math.max(...Object.values(analytics.relCounts) as number[])) * 100)}%` }} /></div>
+                          <span className="bar-count">{count}</span>
+                        </div>
+                      ))}
+                      {Object.keys(analytics.topGiftByRel).length > 0 && (
+                        <>
+                          <div style={{ height: "1px", background: "var(--border)", margin: "0.75rem 0" }} />
+                          <p className="label" style={{ marginBottom: "0.5rem" }}>Top gift by relationship</p>
+                          {Object.entries(analytics.topGiftByRel).map(([rel, gift]: any) => (
+                            <div key={rel} style={{ display: "flex", justifyContent: "space-between", padding: "0.35rem 0", borderBottom: "1px solid var(--border)", fontSize: "11px" }}>
+                              <span style={{ color: "var(--text-3)" }}>{rel}</span>
+                              <span style={{ color: "var(--text-2)", maxWidth: "55%", textAlign: "right" }}>{gift}</span>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Price range */}
+                  {analytics.priceCounts && Object.keys(analytics.priceCounts).length > 0 && (
+                    <div className="card" style={{ marginBottom: "1rem" }}>
+                      <p className="eyebrow">Consequence Budget</p>
+                      {Object.entries(analytics.priceCounts).map(([range, count]: any) => (
+                        <div className="bar-row" key={range}>
+                          <span className="bar-label">{range}</span>
+                          <div className="bar-track"><div className="bar-fill" style={{ width: `${Math.round((count / Math.max(...Object.values(analytics.priceCounts) as number[])) * 100)}%` }} /></div>
+                          <span className="bar-count">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Send frequency */}
+                  {analytics.freqCounts && Object.keys(analytics.freqCounts).length > 0 && (
+                    <div className="card" style={{ marginBottom: "1rem" }}>
+                      <p className="eyebrow">How Often They Send</p>
+                      {Object.entries(analytics.freqCounts).map(([freq, count]: any) => (
+                        <div className="bar-row" key={freq}>
+                          <span className="bar-label">{freq}</span>
+                          <div className="bar-track"><div className="bar-fill" style={{ width: `${Math.round((count / Math.max(...Object.values(analytics.freqCounts) as number[])) * 100)}%` }} /></div>
                           <span className="bar-count">{count}</span>
                         </div>
                       ))}

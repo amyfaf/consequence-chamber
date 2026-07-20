@@ -1553,6 +1553,34 @@ export default function App() {
               )}
             </div>
           </div>
+          {(selectedGift || spinsLeft < 3) && !isSpinning && (
+            <div className="card center fadein" style={{ marginTop: "0.5rem" }}>
+              <p className="eyebrow">The Chamber Is Open</p>
+              <p style={{ fontFamily: "var(--serif)", fontSize: "1.1rem", fontWeight: 600, marginBottom: "0.35rem" }}>
+                Build your own roulette.
+              </p>
+              <p className="sub" style={{ marginBottom: "1rem" }}>
+                Create a free account and send your own consequence experience. First 3 are on us.
+              </p>
+                href="https://consequence-chamber.vercel.app"
+                style={{
+                  display: "block",
+                  background: "var(--gold)",
+                  color: "#000",
+                  padding: "0.85rem",
+                  borderRadius: "var(--radius-sm)",
+                  fontSize: "12px",
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  textDecoration: "none",
+                  fontFamily: "var(--mono)",
+                  fontWeight: 500,
+                }}
+              >
+                Create My Chamber →
+              </a>
+            </div>
+          )}
           <p className="foot">Consequences are non-negotiable.<br />Powered by {APP_TITLE}.</p>
         </div>
       </div>

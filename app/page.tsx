@@ -8,10 +8,16 @@ import { createClient } from "@supabase/supabase-js";
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const OWNER_PASSWORD = "adaptable";
 const OWNER_VENMO = "amyf_af";
-const OWNER_VENMO_AMOUNT = 10;
+const OWNER_VENMO_AMOUNT = 5;
 const APP_TITLE = "The Consequence Chamber";
 const BASE_URL = "https://consequence-chamber.vercel.app";
 const FREE_ROULETTE_LIMIT = 3;
+const REFERRAL_SIGNUP_BONUS = 1; // extra free roulette for a NEW user who signs up with a code
+const REFERRAL_REFERRER_BONUS = 1; // extra free roulette for the referrer, per successful referral
+const REFERRAL_MILESTONES: { at: number; bonus: number }[] = [
+  { at: 3, bonus: 2 }, // on your 3rd successful referral, +2 extra on top of the per-referral bonus
+  { at: 5, bonus: 3 }, // on your 5th, +3 more
+];
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // SUPABASE
@@ -112,6 +118,7 @@ const INDICTMENTS = [
 ];
 
 const generateCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
+const generateReferralCode = () => "REF" + Math.random().toString(36).substring(2, 7).toUpperCase();
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // STYLES
@@ -320,9 +327,12 @@ function GiftSlot({ index, value, onChange, usedIds }: any) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // HISTORY CARD COMPONENT
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function HistoryCard({ roulette }: { roulette: any }) {
+function HistoryCard({ roulette, onLabelSaved }: { roulette: any; onLabelSaved: (code: string, label: string) => void }) {
   const [showGifts, setShowGifts] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [editingLabel, setEditingLabel] = useState(false);
+  const [labelDraft, setLabelDraft] = useState(roulette.recipient_label || "");
+  const [savingLabel, setSavingLabel] = useState(false);
   const link = `${BASE_URL}?r=${roulette.code}`;
 
   const copyLink = () => {
@@ -332,6 +342,13 @@ function HistoryCard({ roulette }: { roulette: any }) {
     });
   };
 
+  const saveLabel = async () => {
+    setSavingLabel(true);
+    await onLabelSaved(roulette.code, labelDraft.trim());
+    setSavingLabel(false);
+    setEditingLabel(false);
+  };
+
   return (
     <div className="card-history fadein">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
@@ -339,6 +356,30 @@ function HistoryCard({ roulette }: { roulette: any }) {
         <button className="btn btn-ghost btn-xs" onClick={copyLink}>{copied ? "✓" : "Copy Link"}</button>
       </div>
       <p className="history-link">{link}</p>
+
+      {editingLabel ? (
+        <div className="row" style={{ marginTop: "0.4rem", marginBottom: "0.4rem" }}>
+          <input
+            className="input"
+            style={{ fontSize: "12px" }}
+            placeholder="e.g. Situationship Jake"
+            value={labelDraft}
+            onChange={e => setLabelDraft(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && saveLabel()}
+            autoFocus
+          />
+          <button className="btn btn-gold btn-xs" onClick={saveLabel} disabled={savingLabel}>{savingLabel ? "..." : "Save"}</button>
+          <button className="btn btn-ghost btn-xs" onClick={() => { setEditingLabel(false); setLabelDraft(roulette.recipient_label || ""); }}>Cancel</button>
+        </div>
+      ) : (
+        <p className="sub" style={{ marginBottom: "0.4rem", fontSize: "12px" }}>
+          For: <strong style={{ color: roulette.recipient_label ? "var(--gold)" : "var(--text-3)" }}>{roulette.recipient_label || "Not labeled"}</strong>{" "}
+          <span onClick={() => setEditingLabel(true)} style={{ color: "var(--gold)", cursor: "pointer", textDecoration: "underline", fontSize: "11px" }}>
+            {roulette.recipient_label ? "edit" : "+ add"}
+          </span>
+        </p>
+      )}
+
       {roulette.indictment && (
         <p className="history-indictment">"{roulette.indictment}"</p>
       )}
@@ -375,6 +416,19 @@ export default function App() {
   // ── Dashboard ─────────────────────────────────────────────────
   const [userRoulettes, setUserRoulettes] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [dashboardTab, setDashboardTab] = useState<"new" | "history" | "profile" | "ledger">("new");
+  const [myProfile, setMyProfile] = useState<any>(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+
+  // ── Referrals ─────────────────────────────────────────────────
+  const [referralCodeInput, setReferralCodeInput] = useState(""); // entered at signup
+  const [referralLinkCopied, setReferralLinkCopied] = useState(false);
+
+  // ── Feedback (Ledger tab) ────────────────────────────────────
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackSending, setFeedbackSending] = useState(false);
+  const [feedbackSent, setFeedbackSent] = useState(false);
 
   // ── Guest / owner access ──────────────────────────────────────
   const [pwInput, setPwInput] = useState("");
@@ -418,6 +472,7 @@ export default function App() {
   const [senderNameError, setSenderNameError] = useState(false);
   const [senderVenmo, setSenderVenmo] = useState("");
   const [senderEmail, setSenderEmail] = useState("");
+  const [recipientLabel, setRecipientLabel] = useState(""); // optional: who this is for, sender's own words — never shown to the receiver
   const [gifts, setGifts] = useState(Array(5).fill(null));
   const [activeCode, setActiveCode] = useState("");
   const [isAccountCreate, setIsAccountCreate] = useState(false);
@@ -471,13 +526,71 @@ export default function App() {
           return;
         }
       }
+      // Check for a referral code in the link (?ref=REF12345)
+      const ref = params.get("ref");
+      if (ref) {
+        setReferralCodeInput(ref.toUpperCase());
+        setEntryMode("account");
+        setAuthTab("signup");
+      }
       // Check existing session
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) setCurrentUser(session.user);
+      if (session?.user) { setCurrentUser(session.user); await loadDashboard(session.user.id); }
       setScreen("entry");
     };
     init();
   }, []);
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // REFERRALS
+  // Double-sided: the new signee and the referrer each get a bonus roulette.
+  // Guards: no self-referral, code must belong to a real account, and a
+  // referred_by value can only ever be set once per account (immutable),
+  // so nobody can re-apply a code or stack bonuses on one account.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const applyReferralCode = async (newUserId: string, codeRaw: string) => {
+    const code = codeRaw.trim().toUpperCase();
+    if (!code) return;
+
+    const { data: newProfile } = await supabase.from("user_profiles").select("*").eq("user_id", newUserId).single();
+    if (!newProfile || newProfile.referred_by) return; // already has a code applied — never overwrite
+
+    const { data: referrer } = await supabase.from("user_profiles").select("*").eq("referral_code", code).single();
+    if (!referrer) return; // not a real code — fail silently, don't block signup
+    if (referrer.user_id === newUserId) return; // can't refer yourself
+
+    // Lock in referred_by + give the new user their signup bonus (one-time, since referred_by can only be set here)
+    await supabase.from("user_profiles").update({
+      referred_by: code,
+      bonus_roulettes: (newProfile.bonus_roulettes || 0) + REFERRAL_SIGNUP_BONUS,
+    }).eq("user_id", newUserId);
+  };
+
+  // Credits the referrer once the referred user proves real engagement
+  // (their first completed roulette, not just signing up). Guarded by
+  // referral_credited so this can only ever fire once per referred user.
+  const creditReferrerIfEligible = async (userId: string) => {
+    const { data: profile } = await supabase.from("user_profiles").select("*").eq("user_id", userId).single();
+    if (!profile || !profile.referred_by || profile.referral_credited) return;
+
+    const { data: referrer } = await supabase.from("user_profiles").select("*").eq("referral_code", profile.referred_by).single();
+    if (!referrer || referrer.user_id === userId) {
+      // Referrer no longer resolves or would be a self-credit — mark as credited anyway so this doesn't retry forever
+      await supabase.from("user_profiles").update({ referral_credited: true }).eq("user_id", userId);
+      return;
+    }
+
+    const newCount = (referrer.referral_count || 0) + 1;
+    let milestoneBonus = 0;
+    for (const m of REFERRAL_MILESTONES) if (newCount === m.at) milestoneBonus += m.bonus;
+
+    await supabase.from("user_profiles").update({
+      referral_count: newCount,
+      bonus_roulettes: (referrer.bonus_roulettes || 0) + REFERRAL_REFERRER_BONUS + milestoneBonus,
+    }).eq("user_id", referrer.user_id);
+
+    await supabase.from("user_profiles").update({ referral_credited: true }).eq("user_id", userId);
+  };
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // AUTH
@@ -488,7 +601,13 @@ export default function App() {
     if (authTab === "signup") {
       const { data, error } = await supabase.auth.signUp({ email: authEmail, password: authPassword });
       if (error) { setAuthError(error.message); setAuthLoading(false); return; }
-      if (data.user) { setCurrentUser(data.user); await loadDashboard(data.user.id); setScreen("dashboard"); }
+      if (data.user) {
+        setCurrentUser(data.user);
+        await loadDashboard(data.user.id); // provisions their profile + referral_code
+        await applyReferralCode(data.user.id, referralCodeInput);
+        await loadDashboard(data.user.id); // refresh so the signup bonus shows immediately
+        setScreen("dashboard");
+      }
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
       if (error) { setAuthError(error.message); setAuthLoading(false); return; }
@@ -509,12 +628,75 @@ export default function App() {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   const loadDashboard = async (userId: string) => {
     setLoadingHistory(true);
+    setLoadingProfile(true);
     const { data } = await supabase.from("roulettes").select("*").eq("user_id", userId).order("created_at", { ascending: false });
     setUserRoulettes(data || []);
     setLoadingHistory(false);
+
+    // Load (or provision) this user's profile, including their referral code
+    let { data: profile } = await supabase.from("user_profiles").select("*").eq("user_id", userId).single();
+    if (!profile) {
+      const newCode = generateReferralCode();
+      const { data: created } = await supabase.from("user_profiles").upsert(
+        { user_id: userId, referral_code: newCode },
+        { onConflict: "user_id" }
+      ).select().single();
+      profile = created;
+    } else if (!profile.referral_code) {
+      // Backfill a referral code for existing accounts that predate this feature
+      const newCode = generateReferralCode();
+      const { data: updated } = await supabase.from("user_profiles").update({ referral_code: newCode }).eq("user_id", userId).select().single();
+      profile = updated || profile;
+    }
+    setMyProfile(profile || null);
+
+    // Prefill the profile form with saved answers so it's editable, not one-and-done
+    if (profile) {
+      setProfileAge(profile.age != null ? String(profile.age) : "");
+      setProfileGender(profile.gender || "");
+      setProfileCity(profile.city || "");
+      setProfileOccupation(profile.occupation || "");
+      setProfileIntent(profile.relationship_intent || "");
+      setProfileHobbies(profile.hobbies || []);
+      setProfileRelationship(profile.relationship_context || "");
+      setProfilePriceRange(profile.price_range || "");
+      setProfileSendFrequency(profile.send_frequency || "");
+      setProfileSaved(!!(profile.age || profile.gender || profile.city || profile.occupation));
+    }
+    setLoadingProfile(false);
   };
 
-  const freeRoulettesLeft = Math.max(0, FREE_ROULETTE_LIMIT - userRoulettes.length);
+  const freeRoulettesLeft = Math.max(0, FREE_ROULETTE_LIMIT + (myProfile?.bonus_roulettes || 0) - userRoulettes.length);
+
+  const saveRecipientLabel = async (code: string, label: string) => {
+    await supabase.from("roulettes").update({ recipient_label: label || null }).eq("code", code);
+    setUserRoulettes(prev => prev.map(r => r.code === code ? { ...r, recipient_label: label || null } : r));
+  };
+
+  const submitFeedback = async () => {
+    if (feedbackRating === 0) return;
+    setFeedbackSending(true);
+    try {
+      await fetch("/api/send-feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: feedbackRating, feedback: feedbackText, code: currentUser?.email || "account" }),
+      });
+      setFeedbackSent(true);
+      setFeedbackRating(0);
+      setFeedbackText("");
+    } finally {
+      setFeedbackSending(false);
+    }
+  };
+
+  const copyReferralLink = () => {
+    if (!myProfile?.referral_code) return;
+    navigator.clipboard.writeText(`${BASE_URL}?ref=${myProfile.referral_code}`).then(() => {
+      setReferralLinkCopied(true);
+      setTimeout(() => setReferralLinkCopied(false), 2000);
+    });
+  };
 
   const saveProfile = async () => {
     if (!currentUser) return;
@@ -533,7 +715,7 @@ export default function App() {
     }, { onConflict: "user_id" });
     setSavingProfile(false);
     setProfileSaved(true);
-    setShowProfileForm(false);
+    await loadDashboard(currentUser.id);
   };
   const startNewRoulette = async () => {
     if (freeRoulettesLeft > 0) {
@@ -542,6 +724,7 @@ export default function App() {
       setActiveCode(code);
       setIsAccountCreate(true);
       setSenderEmail(currentUser?.email || "");
+      setRecipientLabel("");
       setScreen("sender");
     } else {
       // Needs to purchase a code
@@ -713,11 +896,16 @@ export default function App() {
       notify_on_venmo: false,
       gifts: filledGifts,
       indictment: finalIndictment || null,
+      recipient_label: recipientLabel.trim() || null,
     };
     if (isAccountCreate && currentUser) insertData.user_id = currentUser.id;
+    const wasFirstRoulette = isAccountCreate && currentUser && userRoulettes.length === 0;
     const { error } = await supabase.from("roulettes").insert(insertData);
     if (error) { setSaveError(error.message); return; }
-    if (isAccountCreate && currentUser) await loadDashboard(currentUser.id);
+    if (isAccountCreate && currentUser) {
+      if (wasFirstRoulette) await creditReferrerIfEligible(currentUser.id);
+      await loadDashboard(currentUser.id);
+    }
     setRouletteLink(`${BASE_URL}?r=${activeCode}`);
     setScreen("link-ready");
   };
@@ -878,13 +1066,20 @@ export default function App() {
                 <input className="input" type="email" placeholder="email@example.com" value={authEmail} onChange={e => setAuthEmail(e.target.value)} />
                 <label className="label mt1">Password</label>
                 <input className="input" type="password" placeholder="••••••••" value={authPassword} onChange={e => setAuthPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAuth()} />
+                {authTab === "signup" && (
+                  <>
+                    <label className="label mt1">Referral code (optional)</label>
+                    <input className="input" placeholder="e.g. REF4A9X2" value={referralCodeInput} onChange={e => setReferralCodeInput(e.target.value.toUpperCase())} style={{ letterSpacing: "0.1em" }} />
+                  </>
+                )}
                 {authError && <p className="error-msg">{authError}</p>}
                 <button className="btn btn-gold mt1" onClick={handleAuth} disabled={authLoading}>
                   {authLoading ? "..." : authTab === "login" ? "Log In" : "Create Account"}
                 </button>
                 {authTab === "signup" && (
                   <p className="sub center" style={{ marginTop: "0.5rem", fontSize: "11px" }}>
-                    New accounts get <strong style={{ color: "var(--gold)" }}>{FREE_ROULETTE_LIMIT} free roulettes</strong>. No code needed.
+                    New accounts get <strong style={{ color: "var(--gold)" }}>{FREE_ROULETTE_LIMIT} free roulettes</strong>
+                    {referralCodeInput ? <> + <strong style={{ color: "var(--gold)" }}>1 bonus</strong> for using a referral code</> : null}. No code needed.
                   </p>
                 )}
               </div>
@@ -924,29 +1119,61 @@ export default function App() {
               </div>
               <span className="free-pill">{freeRoulettesLeft} free left</span>
             </div>
-            <button className="btn btn-gold mt2" onClick={startNewRoulette}>
-              + Create New Roulette
-            </button>
-            {freeRoulettesLeft === 0 && (
-              <p className="sub center" style={{ marginTop: "0.5rem", fontSize: "11px" }}>
-                Free limit reached.{" "}
-                <span onClick={() => { setShowPurchaseModal(true); setPurchaseStep("form"); }} style={{ color: "var(--gold)", cursor: "pointer", textDecoration: "underline" }}>Purchase more access →</span>
-              </p>
-            )}
           </div>
-          {/* Profile form banner */}
-          {!profileSaved && !showProfileForm && (
-            <div className="profile-banner fadein">
-              <p className="eyebrow">Optional — Tell Us About Yourself</p>
-              <p className="sub" style={{ marginBottom: "0.75rem" }}>Help us understand who's using the chamber. All fields optional.</p>
-              <button className="btn btn-ghost btn-sm" onClick={() => setShowProfileForm(true)}>Fill Out Profile →</button>
+
+          <div className="owner-tabs">
+            <button className={`owner-tab ${dashboardTab === "new" ? "active" : ""}`} onClick={() => setDashboardTab("new")}>New</button>
+            <button className={`owner-tab ${dashboardTab === "history" ? "active" : ""}`} onClick={() => setDashboardTab("history")}>History</button>
+            <button className={`owner-tab ${dashboardTab === "profile" ? "active" : ""}`} onClick={() => setDashboardTab("profile")}>Profile</button>
+            <button className={`owner-tab ${dashboardTab === "ledger" ? "active" : ""}`} onClick={() => setDashboardTab("ledger")}>The Ledger</button>
+          </div>
+
+          {/* ── NEW ROULETTE TAB ─────────────────────────────────── */}
+          {dashboardTab === "new" && (
+            <div className="card card-accent fadein">
+              <p className="eyebrow">Start a Chamber</p>
+              <p className="sub mb1">Pick five gifts, add an optional indictment, and send the link.</p>
+              <button className="btn btn-gold mt1" onClick={startNewRoulette}>
+                + Create New Roulette
+              </button>
+              {freeRoulettesLeft === 0 && (
+                <p className="sub center" style={{ marginTop: "0.5rem", fontSize: "11px" }}>
+                  Free limit reached.{" "}
+                  <span onClick={() => { setShowPurchaseModal(true); setPurchaseStep("form"); }} style={{ color: "var(--gold)", cursor: "pointer", textDecoration: "underline" }}>Purchase more access →</span>
+                </p>
+              )}
+              {freeRoulettesLeft > 0 && (
+                <p className="sub center" style={{ marginTop: "0.5rem", fontSize: "11px" }}>
+                  You have <strong style={{ color: "var(--gold)" }}>{freeRoulettesLeft}</strong> free {freeRoulettesLeft === 1 ? "roulette" : "roulettes"} left
+                  {myProfile?.bonus_roulettes ? <> (includes {myProfile.bonus_roulettes} earned via referrals)</> : null}.
+                </p>
+              )}
             </div>
           )}
 
-          {showProfileForm && (
+          {/* ── HISTORY TAB ───────────────────────────────────────── */}
+          {dashboardTab === "history" && (
+            <div className="fadein">
+              {loadingHistory ? (
+                <p className="sub center" style={{ marginTop: "1rem" }}>Loading your chambers...</p>
+              ) : userRoulettes.length === 0 ? (
+                <div className="card center">
+                  <p className="sub">No chambers yet. Head to the New tab to create your first roulette.</p>
+                </div>
+              ) : (
+                <>
+                  <p className="eyebrow" style={{ marginBottom: "0.75rem" }}>Your Roulettes</p>
+                  {userRoulettes.map(r => <HistoryCard key={r.code} roulette={r} onLabelSaved={saveRecipientLabel} />)}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ── PROFILE TAB ───────────────────────────────────────── */}
+          {dashboardTab === "profile" && (
             <div className="card fadein">
               <p className="eyebrow">Your Profile</p>
-              <p className="sub mb1">All information is anonymous and used only for product improvement.</p>
+              <p className="sub mb1">All information is anonymous and used only for product improvement. Update this any time.</p>
               <div className="gap-sm">
                 <label className="label">Age</label>
                 <input className="input" type="number" placeholder="e.g. 28" value={profileAge} onChange={e => setProfileAge(e.target.value)} style={{ fontSize: "13px" }} />
@@ -1031,22 +1258,67 @@ export default function App() {
                 <p style={{ fontSize: "10px", color: "var(--text-3)", marginTop: "0.25rem" }}>{profileHobbies.length}/3 selected</p>
 
                 <div className="row mt1">
-                  <button className="btn btn-gold" onClick={saveProfile} disabled={savingProfile}>{savingProfile ? "Saving..." : "Save Profile"}</button>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setShowProfileForm(false)}>Skip</button>
+                  <button className="btn btn-gold" onClick={saveProfile} disabled={savingProfile || loadingProfile}>{savingProfile ? "Saving..." : "Save Profile"}</button>
                 </div>
               </div>
             </div>
           )}
-          {loadingHistory ? (
-            <p className="sub center" style={{ marginTop: "1rem" }}>Loading your chambers...</p>
-          ) : userRoulettes.length === 0 ? (
-            <div className="card center">
-              <p className="sub">No chambers yet. Create your first roulette above.</p>
-            </div>
-          ) : (
+
+          {/* ── THE LEDGER TAB (referrals + feedback) ────────────────── */}
+          {dashboardTab === "ledger" && (
             <div className="fadein">
-              <p className="eyebrow" style={{ marginBottom: "0.75rem" }}>Your Roulettes</p>
-              {userRoulettes.map(r => <HistoryCard key={r.code} roulette={r} />)}
+              <div className="card card-accent">
+                <p className="eyebrow">Refer a Friend</p>
+                <p className="sub mb1">Share your code. You both get a free roulette when they send their first one.</p>
+                <div className="input-wrap" style={{ marginBottom: "0.5rem" }}>
+                  <input className="input" readOnly value={myProfile?.referral_code ? `${BASE_URL}?ref=${myProfile.referral_code}` : "Loading..."} style={{ fontSize: "11px" }} />
+                </div>
+                <button className="btn btn-gold" onClick={copyReferralLink} disabled={!myProfile?.referral_code}>{referralLinkCopied ? "✓ Copied" : "Copy Referral Link"}</button>
+
+                <div className="row mt2" style={{ justifyContent: "space-between" }}>
+                  <div style={{ textAlign: "center" }}>
+                    <p className="heading-sm" style={{ color: "var(--gold)", marginBottom: 0 }}>{myProfile?.referral_count || 0}</p>
+                    <p className="sub" style={{ fontSize: "10px" }}>Friends referred</p>
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <p className="heading-sm" style={{ color: "var(--gold)", marginBottom: 0 }}>{myProfile?.bonus_roulettes || 0}</p>
+                    <p className="sub" style={{ fontSize: "10px" }}>Bonus roulettes earned</p>
+                  </div>
+                </div>
+                <p className="sub" style={{ marginTop: "0.75rem", fontSize: "11px" }}>
+                  Milestones: +2 bonus at 3 referrals, +3 more at 5.
+                </p>
+              </div>
+
+              <div className="card fadein" style={{ marginTop: "1rem" }}>
+                <p className="eyebrow">Feedback & Suggestions</p>
+                {feedbackSent ? (
+                  <p className="sub" style={{ color: "var(--gold)" }}>✓ Thank you — your feedback was sent.</p>
+                ) : (
+                  <>
+                    <p className="sub mb1">Tell us what's working, what's broken, or what you want to see next.</p>
+                    <div className="row" style={{ marginBottom: "0.75rem" }}>
+                      {[1, 2, 3, 4, 5].map(n => (
+                        <span
+                          key={n}
+                          onClick={() => setFeedbackRating(n)}
+                          style={{ fontSize: "1.5rem", cursor: "pointer", color: n <= feedbackRating ? "var(--gold)" : "var(--border)" }}
+                        >★</span>
+                      ))}
+                    </div>
+                    <textarea
+                      className="input"
+                      placeholder="Optional — what should we fix or build next?"
+                      value={feedbackText}
+                      onChange={e => setFeedbackText(e.target.value)}
+                      style={{ minHeight: "80px", fontFamily: "inherit", resize: "vertical" }}
+                    />
+                    <button className="btn btn-gold mt1" onClick={submitFeedback} disabled={feedbackRating === 0 || feedbackSending}>
+                      {feedbackSending ? "Sending..." : "Submit Feedback"}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           )}
 
@@ -1331,6 +1603,12 @@ export default function App() {
               <label className="label label-required">Your name (shown to receiver)</label>
               <input className={`input ${senderNameError ? "input-error" : ""}`} placeholder="e.g. The Aggrieved Party" value={senderName} onChange={e => { setSenderName(e.target.value); if (e.target.value) setSenderNameError(false); }} />
               {senderNameError && <p className="field-error">Name is required.</p>}
+              {isAccountCreate && (
+                <>
+                  <label className="label mt1">Who's this for? (optional, just for your own records — never shown to the receiver)</label>
+                  <input className="input" placeholder="e.g. Situationship Jake, my coworker Dana..." value={recipientLabel} onChange={e => setRecipientLabel(e.target.value)} />
+                </>
+              )}
               <label className="label mt1">Your Venmo handle (receiver's fallback payment)</label>
               <div className="input-wrap">
                 <span className="input-prefix">@</span>
@@ -1562,6 +1840,7 @@ export default function App() {
               <p className="sub" style={{ marginBottom: "1rem" }}>
                 Create a free account and send your own consequence experience. First 3 are on us.
               </p>
+              <a
                 href="https://consequence-chamber.vercel.app"
                 style={{
                   display: "block",
